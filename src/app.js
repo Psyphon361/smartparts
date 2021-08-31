@@ -32,7 +32,7 @@ const port = process.env.PORT;
 app.use(userRouter);
 
 app.get("/*", (req, res) => {
-    res.status(404).send("Not Found");
+    res.status(404).send("Not Found");  // RENDER THE 404 PAGE
 });
 
 app.listen(port, function () {

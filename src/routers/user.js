@@ -1,6 +1,5 @@
 require("../oauth/google");
 const path = require("path");
-const fetch = require("node-fetch");
 const express = require("express");
 const router = new express.Router();
 const User = require("../models/user");
@@ -26,7 +25,8 @@ router.post("/login", async (req, res) => {
         );
 
         if (shared_data.valid_user == false) {
-            res.redirect("/login");
+            // res.redirect("/login");
+            res.status(403).send("Redirecting to Login!");
         } else {
             const token = await user.generateAuthToken();
 
@@ -35,26 +35,35 @@ router.post("/login", async (req, res) => {
                 secure: false, // !!!!!------ MAKE IT secure: true BEFORE HOSTING --------!!!!!!
             });
 
-            shared_data.user_is_authenticated = true;
+            shared_data.user_is_authenticated = true; // FLAG FOR INDICATING WHETHER A USER IS LOGGED IN OR NOT
 
-            res.status(200).send("User Dashboard/Home");
+            res.status(200).send(
+                "Login Success! Redirect to User Dashboard/Home"
+            );
             // res.status(200).redirect("/");
         }
     } catch (e) {
-        res.status(400).send("Not Found");
+        res.status(404).send("Not Found");
     }
 });
 
 router.get("/signup", (req, res) => {
     if (shared_data.user_is_authenticated) {
-        res.redirect("/");
+        res.status(403).redirect("/"); // REDIRECT BACK TO HOME IF ALREADY LOGGED IN
     } else {
-        res.status(200).render("signup");
+        res.status(200).send("signup"); // RENDER SIGNUP PAGE
     }
 });
 
 router.post("/signup", async (req, res) => {
     shared_data.email_flag = false;
+
+    // REGEX FOR STRONG PASSWORD
+
+    // • 6+ characters
+    // • One Upper & Lowercase
+    // • One number
+    // • Special characters (@$!%*?&)
 
     const re =
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
@@ -63,8 +72,6 @@ router.post("/signup", async (req, res) => {
         shared_data.strong_password = false;
         res.redirect("/signup");
     } else {
-        shared_data.strong_password = true;
-
         const user = new User(req.body);
 
         const existing_user = await User.findOne({ email: user.email });
@@ -75,19 +82,19 @@ router.post("/signup", async (req, res) => {
         } else {
             try {
                 await user.save();
-                // sendWelcomeEmail(user.email, user.name);
                 const token = await user.generateAuthToken();
 
                 res.cookie("jwt", token, {
+                    // CREATING SESSION IN THE BROWSER
                     httpOnly: true,
-                    secure: false,
+                    secure: false, // !!!!!------ MAKE IT secure: true BEFORE HOSTING --------!!!!!!
                 });
 
                 shared_data.user_is_authenticated = true;
 
-                res.status(201).redirect("/register"); // REDIRECT TO REGISTRATION FORM AFTER SIGNUP
+                res.status(201).send("User signed Up!");
             } catch (e) {
-                res.status(400);
+                res.status(400).send("Not Found");
             }
         }
     }
@@ -109,12 +116,35 @@ router.get(
 
         res.cookie("jwt", token, {
             httpOnly: true,
-            secure: false,
+            secure: false, // !!!!---- CHANGE IT TO secure: true IN PRODUCTION ----!!!!
         });
 
         shared_data.user_is_authenticated = true;
 
-        res.status(201).redirect("/register"); // REDIRECT TO REGISTRATION FORM AFTER SIGNUP
+        res.status(201).send("User signed Up!");
+    }
+);
+
+// FACEBOOK OAUTH
+
+router.get("/facebook", passport.authenticate("facebook", { scope: "email" }));
+
+router.get(
+    "/facebook/callback",
+    passport.authenticate("facebook", { failureRedirect: "/signup" }),
+
+    async function (req, res) {
+        const user = req.user;
+        const token = await user.generateAuthToken();
+
+        res.cookie("jwt", token, {
+            httpOnly: true,
+            secure: false, // !!!!!------ MAKE IT secure: true BEFORE HOSTING --------!!!!!!
+        });
+
+        shared_data.user_is_authenticated = true;
+
+        res.status(201).send("User signed Up!");
     }
 );
 
@@ -126,7 +156,9 @@ router.get("/logout", auth, async (req, res) => {
 
         await req.user.save();
 
-        res.redirect("/");
+        res.status(200).send("Successfully Logged out!");
+
+        // res.redirect("/");
     } catch (e) {
         res.status(500).send();
     }
