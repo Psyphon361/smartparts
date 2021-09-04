@@ -3,14 +3,15 @@ const path = require("path");
 const express = require("express");
 const router = new express.Router();
 const User = require("../models/user");
-// const Invoice = require("../models/invoice");
 const auth = require("../middleware/auth");
 const passport = require("passport");
 const jwt = require("jsonwebtoken");
 const shared_data = require("../shared-data/shared-vars");
 
+const XLSX = require("xlsx");
+
 router.get("/", async (req, res) => {
-    res.status(200).send("Home"); // res.status(200).redirect("/");
+    res.status(200).send("File Parsed!"); // res.status(200).redirect("/");
 });
 
 router.get("/login", (req, res) => {
@@ -98,6 +99,27 @@ router.post("/signup", async (req, res) => {
             }
         }
     }
+});
+
+//  PRODUCT DETAILS BY BRAND
+
+router.get("/products/:brand", async (req, res) => {
+    
+    // Read the file into memory
+    const workbook = XLSX.readFile(path.join(__dirname, "../../public/csv/" + req.params.brand + ".csv"));
+
+    // Convert the XLSX to JSON
+    let worksheets = {};
+    for (const sheetName of workbook.SheetNames) {
+        worksheets[sheetName] = XLSX.utils.sheet_to_json(
+            workbook.Sheets[sheetName]
+        );
+    }
+
+    // Show the data as JSON
+    console.log(JSON.stringify(worksheets.Sheet1));
+
+    res.status(200).send("File Parsed!"); // res.status(200).redirect("/");
 });
 
 // GOOGLE OAUTH
