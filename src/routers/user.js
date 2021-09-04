@@ -104,9 +104,10 @@ router.post("/signup", async (req, res) => {
 //  PRODUCT DETAILS BY BRAND
 
 router.get("/products/:brand", async (req, res) => {
-    
     // Read the file into memory
-    const workbook = XLSX.readFile(path.join(__dirname, "../../public/csv/" + req.params.brand + ".csv"));
+    const workbook = XLSX.readFile(
+        path.join(__dirname, "../../public/csv/" + req.params.brand + ".csv")
+    );
 
     // Convert the XLSX to JSON
     let worksheets = {};
@@ -117,9 +118,9 @@ router.get("/products/:brand", async (req, res) => {
     }
 
     // Show the data as JSON
-    console.log(JSON.stringify(worksheets.Sheet1));
+    // console.log(JSON.stringify(worksheets.Sheet1));
 
-    res.status(200).send("File Parsed!"); // res.status(200).redirect("/");
+    res.status(200).send(JSON.stringify(worksheets.Sheet1));  // RESPONSE
 });
 
 // GOOGLE OAUTH
